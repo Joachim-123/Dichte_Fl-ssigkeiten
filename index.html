@@ -63,6 +63,9 @@
   <label>Masse verändern</label>
   <input type="range" id="massSlider" min="10" max="150" value="50">
 
+  <label style="margin-top:15px; display:block;">Volumen verändern</label>
+  <input type="range" id="volumeSlider" min="50" max="200" value="100">
+
   <div class="values">
     <div>Masse: <span id="mass">50</span></div>
     <div>Volumen: <span id="volume">100</span></div>
@@ -107,19 +110,54 @@ floor.position.y = -1;
 scene.add(floor);
 
 // GLASBEHÄLTER
-const boxGeo = new THREE.BoxGeometry(6, 8, 6);
-const boxMat = new THREE.MeshPhysicalMaterial({
-  color: 0x38bdf8,
+const containerGroup = new THREE.Group();
+scene.add(containerGroup);
+
+const glassMaterial = new THREE.MeshPhysicalMaterial({
+  color: 0xffffff,
   transparent: true,
-  opacity: 0.2,
+  opacity: 0.15,
   roughness: 0,
   metalness: 0,
-  transmission: 1
+  transmission: 1,
+  side: THREE.DoubleSide
 });
 
-const container = new THREE.Mesh(boxGeo, boxMat);
+const edgeMaterial = new THREE.MeshStandardMaterial({
+  color: 0x7dd3fc,
+  emissive: 0x38bdf8,
+  emissiveIntensity: 0.3
+});
+
+// Behälterkanten
+const edges = new THREE.LineSegments(
+  new THREE.EdgesGeometry(new THREE.BoxGeometry(6, 8, 6)),
+  new THREE.LineBasicMaterial({ color: 0x7dd3fc })
+);
+edges.position.y = 3;
+containerGroup.add(edges);
+
+// Transparente Wände
+const container = new THREE.Mesh(
+  new THREE.BoxGeometry(6, 8, 6),
+  glassMaterial
+);
 container.position.y = 3;
-scene.add(container);
+containerGroup.add(container);
+
+// Flüssigkeit
+const liquidGeometry = new THREE.BoxGeometry(5.6, 4, 5.6);
+const liquidMaterial = new THREE.MeshPhysicalMaterial({
+  color: 0x2563eb,
+  transparent: true,
+  opacity: 0.55,
+  transmission: 0.3,
+  roughness: 0.15
+});
+
+const liquid = new THREE.Mesh(liquidGeometry, liquidMaterial);
+liquid.position.y = 1;
+containerGroup.add(liquid);
 
 // PARTIKEL
 const particles = [];
@@ -161,19 +199,42 @@ createParticles(50);
 
 // UI
 const slider = document.getElementById('massSlider');
+const volumeSlider = document.getElementById('volumeSlider');
+
 const massText = document.getElementById('mass');
 const densityText = document.getElementById('density');
+const volumeText = document.getElementById('volume');
 
-slider.addEventListener('input', () => {
+let currentMass = 50;
+let currentVolume = 100;
 
-  const mass = Number(slider.value);
-  const density = mass / 100;
+function updateSimulation() {
 
-  massText.textContent = mass;
+  const density = currentMass / currentVolume;
+
+  massText.textContent = currentMass;
+  volumeText.textContent = currentVolume;
   densityText.textContent = density.toFixed(2);
 
-  createParticles(mass);
+  // Flüssigkeitshöhe anpassen
+  liquid.scale.y = currentVolume / 100;
+  liquid.position.y = (currentVolume / 100) * 2 - 1;
+
+  // Teilchenanzahl anpassen
+  createParticles(currentMass);
+}
+
+slider.addEventListener('input', () => {
+  currentMass = Number(slider.value);
+  updateSimulation();
 });
+
+volumeSlider.addEventListener('input', () => {
+  currentVolume = Number(volumeSlider.value);
+  updateSimulation();
+});
+
+updateSimulation();
 
 // MAUSSTEUERUNG
 let mouseX = 0;
@@ -194,7 +255,11 @@ function animate() {
 
   camera.lookAt(container.position);
 
-  container.rotation.y += 0.002;
+  containerGroup.rotation.y += 0.002;
+
+  // Flüssigkeitsbewegung
+  liquid.rotation.z = Math.sin(Date.now() * 0.001) * 0.01;
+  liquid.rotation.x = Math.cos(Date.now() * 0.0012) * 0.01;
 
   particles.forEach(p => {
 
