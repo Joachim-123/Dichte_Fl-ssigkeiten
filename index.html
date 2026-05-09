@@ -67,9 +67,9 @@
   <input type="range" id="volumeSlider" min="50" max="200" value="100">
 
   <div class="values">
-    <div>Masse: <span id="mass">50</span> g</div>
-    <div>Volumen: <span id="volume">100</span> ml</div>
-    <div>Dichte: <span id="density">0.50</span> g/ml</div>
+    <div>Masse: <span id="mass">50</span></div>
+    <div>Volumen: <span id="volume">100</span></div>
+    <div>Dichte: <span id="density">0.50</span></div>
   </div>
 </div>
 
@@ -123,24 +123,39 @@ const glassMaterial = new THREE.MeshPhysicalMaterial({
   side: THREE.DoubleSide
 });
 
-const boxSize = { x: 6, y: 8, z: 6 };
+const edgeMaterial = new THREE.MeshStandardMaterial({
+  color: 0x7dd3fc,
+  emissive: 0x38bdf8,
+  emissiveIntensity: 0.3
+});
 
+// Behälterkanten
+const edges = new THREE.LineSegments(
+  new THREE.EdgesGeometry(new THREE.BoxGeometry(6, 8, 6)),
+  new THREE.LineBasicMaterial({ color: 0x7dd3fc })
+);
+edges.position.y = 3;
+containerGroup.add(edges);
+
+// Transparente Wände
 const container = new THREE.Mesh(
-  new THREE.BoxGeometry(boxSize.x, boxSize.y, boxSize.z),
+  new THREE.BoxGeometry(6, 8, 6),
   glassMaterial
 );
 container.position.y = 3;
 containerGroup.add(container);
 
-// FLÜSSIGKEIT
-const liquid = new THREE.Mesh(
-  new THREE.BoxGeometry(5.6, 4, 5.6),
-  new THREE.MeshPhysicalMaterial({
-    color: 0x2563eb,
-    transparent: true,
-    opacity: 0.55
-  })
-);
+// Flüssigkeit
+const liquidGeometry = new THREE.BoxGeometry(5.6, 4, 5.6);
+const liquidMaterial = new THREE.MeshPhysicalMaterial({
+  color: 0x2563eb,
+  transparent: true,
+  opacity: 0.55,
+  transmission: 0.3,
+  roughness: 0.15
+});
+
+const liquid = new THREE.Mesh(liquidGeometry, liquidMaterial);
 liquid.position.y = 1;
 containerGroup.add(liquid);
 
@@ -149,10 +164,12 @@ const particles = [];
 const particleGeo = new THREE.SphereGeometry(0.13, 12, 12);
 
 function createParticles(count) {
+
   particles.forEach(p => scene.remove(p));
   particles.length = 0;
 
-  for (let i = 0; i < count; i++) {
+  for(let i = 0; i < count; i++) {
+
     const mat = new THREE.MeshStandardMaterial({
       color: 0xffffff,
       emissive: 0x38bdf8,
@@ -163,7 +180,7 @@ function createParticles(count) {
 
     particle.position.set(
       (Math.random() - 0.5) * 5,
-      Math.random() * 6,
+      Math.random() * 7,
       (Math.random() - 0.5) * 5
     );
 
@@ -181,68 +198,111 @@ function createParticles(count) {
 createParticles(50);
 
 // UI
-const massSlider = document.getElementById('massSlider');
+const slider = document.getElementById('massSlider');
 const volumeSlider = document.getElementById('volumeSlider');
+
 const massText = document.getElementById('mass');
-const volumeText = document.getElementById('volume');
 const densityText = document.getElementById('density');
+const volumeText = document.getElementById('volume');
 
-let mass = 50;
-let volume = 100;
+let currentMass = 50;
+let currentVolume = 100;
 
-function update() {
-  const density = mass / volume;
+function updateSimulation() {
 
-  massText.textContent = mass;
-  volumeText.textContent = volume;
+  const density = currentMass / currentVolume;
+
+  massText.textContent = currentMass;
+  volumeText.textContent = currentVolume;
   densityText.textContent = density.toFixed(2);
 
-  createParticles(mass);
+  // Flüssigkeitshöhe anpassen
+  // Flüssigkeitshöhe begrenzen damit sie nicht verschwindet
+  const liquidHeight = Math.min(currentVolume / 100, 1.95);
 
-  const h = Math.min(volume / 100, 1.95);
-  liquid.scale.y = h;
-  liquid.position.y = h * 2 - 1;
+  liquid.scale.y = liquidHeight;
+  liquid.position.y = liquidHeight * 2 - 1;
+
+  // Teilchenanzahl anpassen
+  createParticles(currentMass);
 }
 
-massSlider.oninput = () => { mass = +massSlider.value; update(); };
-volumeSlider.oninput = () => { volume = +volumeSlider.value; update(); };
-update();
+slider.addEventListener('input', () => {
+  currentMass = Number(slider.value);
+  updateSimulation();
+});
+
+volumeSlider.addEventListener('input', () => {
+  currentVolume = Number(volumeSlider.value);
+  updateSimulation();
+});
+
+updateSimulation();
 
 // MAUSSTEUERUNG
-let down = false, ox = 0, oy = 0, tx = 0, ty = 0, rx = 0, ry = 0;
+let targetRotationY = 0;
+let targetRotationX = 0;
+let currentRotationY = 0;
+let currentRotationX = 0;
+let isMouseDown = false;
+let previousMouseX = 0;
+let previousMouseY = 0;
 
-renderer.domElement.onmousedown = e => { down = true; ox = e.clientX; oy = e.clientY; };
-renderer.domElement.onmouseup = () => down = false;
-renderer.domElement.onmouseleave = () => down = false;
-renderer.domElement.onmousemove = e => {
-  if (!down) return;
-  tx += (e.clientX - ox) * 0.01;
-  ty += (e.clientY - oy) * 0.005;
-  ox = e.clientX; oy = e.clientY;
-};
+renderer.domElement.addEventListener('mousedown', (event) => {
+  isMouseDown = true;
+  previousMouseX = event.clientX;
+  previousMouseY = event.clientY;
+});
 
+renderer.domElement.addEventListener('mouseup', () => {
+  isMouseDown = false;
+});
+
+renderer.domElement.addEventListener('mouseleave', () => {
+  isMouseDown = false;
+});
+
+renderer.domElement.addEventListener('mousemove', (event) => {
+
+  if (!isMouseDown) return;
+
+  const deltaX = event.clientX - previousMouseX;
+  const deltaY = event.clientY - previousMouseY;
+
+  targetRotationY += deltaX * 0.01;
+  targetRotationX += deltaY * 0.005;
+
+  previousMouseX = event.clientX;
+  previousMouseY = event.clientY;
+});
+
+// ANIMATION
 function animate() {
+
   requestAnimationFrame(animate);
 
-  rx += (tx - rx) * 0.08;
-  ry += (ty - ry) * 0.08;
+  camera.lookAt(container.position);
 
-  containerGroup.rotation.y = rx;
-  containerGroup.rotation.x = ry;
+  // Sanfte Mausrotation
+  currentRotationY += (targetRotationY - currentRotationY) * 0.08;
+  currentRotationX += (targetRotationX - currentRotationX) * 0.08;
 
-  containerGroup.updateMatrixWorld(true);
+  containerGroup.rotation.y = currentRotationY;
+  containerGroup.rotation.x = currentRotationX;
 
-  const inv = new THREE.Matrix4().copy(containerGroup.matrixWorld).invert();
-  const half = { x: boxSize.x / 2, y: boxSize.y / 2, z: boxSize.z / 2 };
+  // Flüssigkeitsbewegung
+  liquid.rotation.z = Math.sin(Date.now() * 0.001) * 0.01;
+  liquid.rotation.x = Math.cos(Date.now() * 0.0012) * 0.01;
 
   particles.forEach(p => {
-    p.position.add(p.velocity);
 
-    const local = p.position.clone().applyMatrix4(inv);
+    p.position.x += p.velocity.x;
+    p.position.y += p.velocity.y;
+    p.position.z += p.velocity.z;
 
-    if (local.x > half.x || local.x < -half.x) p.velocity.x *= -1;
-    if (local.y > half.y || local.y < -half.y) p.velocity.y *= -1;
-    if (local.z > half.z || local.z < -half.z) p.velocity.z *= -1;
+    if(p.position.x > 2.7 || p.position.x < -2.7) p.velocity.x *= -1;
+    if(p.position.y > 6.8 || p.position.y < -0.5) p.velocity.y *= -1;
+    if(p.position.z > 2.7 || p.position.z < -2.7) p.velocity.z *= -1;
   });
 
   renderer.render(scene, camera);
@@ -250,11 +310,13 @@ function animate() {
 
 animate();
 
+// RESPONSIVE
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
+
 </script>
 
 </body>
