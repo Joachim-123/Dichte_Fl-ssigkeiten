@@ -1,54 +1,47 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>3D Dichteberechnung</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Dichte Simulation</title>
 
   <style>
     body {
       margin: 0;
       overflow: hidden;
       font-family: Arial, sans-serif;
-      background: linear-gradient(to bottom, #0f172a, #1e293b);
+      background: #0f172a;
       color: white;
     }
 
-    #ui {
+    #panel {
       position: absolute;
       top: 20px;
       left: 20px;
       z-index: 10;
-      background: rgba(255,255,255,0.1);
-      backdrop-filter: blur(10px);
+      width: 300px;
       padding: 20px;
       border-radius: 20px;
-      width: 300px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.3);
     }
 
     h1 {
       margin-top: 0;
-      font-size: 28px;
-      color: #7dd3fc;
-    }
-
-    label {
-      display: block;
-      margin-top: 15px;
-      margin-bottom: 5px;
-    }
-
-    input[type="range"] {
-      width: 100%;
+      color: #38bdf8;
     }
 
     .formula {
-      margin-top: 20px;
-      font-size: 24px;
-      font-weight: bold;
+      font-size: 28px;
       text-align: center;
-      color: #38bdf8;
+      margin: 20px 0;
+      color: #7dd3fc;
+      font-weight: bold;
+    }
+
+    input[type=range] {
+      width: 100%;
     }
 
     .values {
@@ -56,177 +49,176 @@
       line-height: 1.8;
       font-size: 18px;
     }
-
-    canvas {
-      display: block;
-    }
   </style>
 </head>
 <body>
 
-<div id="ui">
-  <h1>Dichte 3D Simulation</h1>
-
-  <label for="massSlider">Masse ändern</label>
-  <input type="range" id="massSlider" min="1" max="100" value="50" />
+<div id="panel">
+  <h1>Dichteberechnung</h1>
 
   <div class="formula">
     ρ = m / V
   </div>
 
+  <label>Masse verändern</label>
+  <input type="range" id="massSlider" min="10" max="150" value="50">
+
   <div class="values">
-    <div>Masse: <span id="massValue">50</span></div>
-    <div>Volumen: <span id="volumeValue">100</span></div>
-    <div>Dichte: <span id="densityValue">0.50</span></div>
+    <div>Masse: <span id="mass">50</span></div>
+    <div>Volumen: <span id="volume">100</span></div>
+    <div>Dichte: <span id="density">0.50</span></div>
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
 <script>
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x0f172a);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0f172a);
 
-  const camera = new THREE.PerspectiveCamera(
-    75,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    1000
-  );
+const camera = new THREE.PerspectiveCamera(
+  70,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  1000
+);
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.shadowMap.enabled = true;
-  document.body.appendChild(renderer.domElement);
+camera.position.z = 14;
+camera.position.y = 5;
 
-  const controls = new THREE.OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
 
-  camera.position.set(0, 8, 15);
+// LICHT
+const ambient = new THREE.AmbientLight(0xffffff, 0.7);
+scene.add(ambient);
 
-  // Licht
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-  scene.add(ambientLight);
+const light = new THREE.PointLight(0xffffff, 1);
+light.position.set(10, 15, 10);
+scene.add(light);
 
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-  directionalLight.position.set(10, 20, 10);
-  scene.add(directionalLight);
+// BODEN
+const floorGeo = new THREE.PlaneGeometry(40, 40);
+const floorMat = new THREE.MeshStandardMaterial({ color: 0x1e293b });
+const floor = new THREE.Mesh(floorGeo, floorMat);
+floor.rotation.x = -Math.PI / 2;
+floor.position.y = -1;
+scene.add(floor);
 
-  // Boden
-  const floorGeometry = new THREE.PlaneGeometry(50, 50);
-  const floorMaterial = new THREE.MeshStandardMaterial({
-    color: 0x1e293b
-  });
+// GLASBEHÄLTER
+const boxGeo = new THREE.BoxGeometry(6, 8, 6);
+const boxMat = new THREE.MeshPhysicalMaterial({
+  color: 0x38bdf8,
+  transparent: true,
+  opacity: 0.2,
+  roughness: 0,
+  metalness: 0,
+  transmission: 1
+});
 
-  const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-  floor.rotation.x = -Math.PI / 2;
-  floor.position.y = -0.5;
-  scene.add(floor);
+const container = new THREE.Mesh(boxGeo, boxMat);
+container.position.y = 3;
+scene.add(container);
 
-  // Behälter
-  const containerGeometry = new THREE.BoxGeometry(6, 8, 6);
-  const containerMaterial = new THREE.MeshPhysicalMaterial({
-    color: 0x38bdf8,
-    transparent: true,
-    opacity: 0.25,
-    roughness: 0,
-    transmission: 1
-  });
+// PARTIKEL
+const particles = [];
+const particleGeo = new THREE.SphereGeometry(0.13, 12, 12);
 
-  const container = new THREE.Mesh(containerGeometry, containerMaterial);
-  container.position.y = 4;
-  scene.add(container);
+function createParticles(count) {
 
-  // Teilchen
-  const particles = [];
-  const particleGeometry = new THREE.SphereGeometry(0.15, 16, 16);
+  particles.forEach(p => scene.remove(p));
+  particles.length = 0;
 
-  function createParticles(count) {
-    particles.forEach(p => scene.remove(p));
-    particles.length = 0;
+  for(let i = 0; i < count; i++) {
 
-    for (let i = 0; i < count; i++) {
-      const particleMaterial = new THREE.MeshStandardMaterial({
-        color: 0xffffff,
-        emissive: 0x38bdf8,
-        emissiveIntensity: 1
-      });
-
-      const particle = new THREE.Mesh(particleGeometry, particleMaterial);
-
-      particle.position.set(
-        (Math.random() - 0.5) * 5,
-        Math.random() * 7 + 0.5,
-        (Math.random() - 0.5) * 5
-      );
-
-      particle.userData.velocity = {
-        x: (Math.random() - 0.5) * 0.03,
-        y: (Math.random() - 0.5) * 0.03,
-        z: (Math.random() - 0.5) * 0.03
-      };
-
-      particles.push(particle);
-      scene.add(particle);
-    }
-  }
-
-  createParticles(50);
-
-  // Slider
-  const massSlider = document.getElementById('massSlider');
-  const massValue = document.getElementById('massValue');
-  const densityValue = document.getElementById('densityValue');
-
-  const volume = 100;
-
-  massSlider.addEventListener('input', () => {
-    const mass = Number(massSlider.value);
-    const density = mass / volume;
-
-    massValue.textContent = mass;
-    densityValue.textContent = density.toFixed(2);
-
-    createParticles(mass);
-  });
-
-  // Animation
-  function animate() {
-    requestAnimationFrame(animate);
-
-    particles.forEach(particle => {
-      particle.position.x += particle.userData.velocity.x;
-      particle.position.y += particle.userData.velocity.y;
-      particle.position.z += particle.userData.velocity.z;
-
-      if (particle.position.x > 2.7 || particle.position.x < -2.7) {
-        particle.userData.velocity.x *= -1;
-      }
-
-      if (particle.position.y > 7.5 || particle.position.y < 0.5) {
-        particle.userData.velocity.y *= -1;
-      }
-
-      if (particle.position.z > 2.7 || particle.position.z < -2.7) {
-        particle.userData.velocity.z *= -1;
-      }
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      emissive: 0x38bdf8,
+      emissiveIntensity: 1
     });
 
-    container.rotation.y += 0.002;
+    const particle = new THREE.Mesh(particleGeo, mat);
 
-    controls.update();
-    renderer.render(scene, camera);
+    particle.position.set(
+      (Math.random() - 0.5) * 5,
+      Math.random() * 7,
+      (Math.random() - 0.5) * 5
+    );
+
+    particle.velocity = {
+      x: (Math.random() - 0.5) * 0.03,
+      y: (Math.random() - 0.5) * 0.03,
+      z: (Math.random() - 0.5) * 0.03
+    };
+
+    particles.push(particle);
+    scene.add(particle);
   }
+}
 
-  animate();
+createParticles(50);
 
-  // Responsive
-  window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+// UI
+const slider = document.getElementById('massSlider');
+const massText = document.getElementById('mass');
+const densityText = document.getElementById('density');
+
+slider.addEventListener('input', () => {
+
+  const mass = Number(slider.value);
+  const density = mass / 100;
+
+  massText.textContent = mass;
+  densityText.textContent = density.toFixed(2);
+
+  createParticles(mass);
+});
+
+// MAUSSTEUERUNG
+let mouseX = 0;
+let mouseY = 0;
+
+document.addEventListener('mousemove', (event) => {
+  mouseX = (event.clientX / window.innerWidth - 0.5) * 2;
+  mouseY = (event.clientY / window.innerHeight - 0.5) * 2;
+});
+
+// ANIMATION
+function animate() {
+
+  requestAnimationFrame(animate);
+
+  camera.position.x += (mouseX * 5 - camera.position.x) * 0.03;
+  camera.position.y += (-mouseY * 2 + 5 - camera.position.y) * 0.03;
+
+  camera.lookAt(container.position);
+
+  container.rotation.y += 0.002;
+
+  particles.forEach(p => {
+
+    p.position.x += p.velocity.x;
+    p.position.y += p.velocity.y;
+    p.position.z += p.velocity.z;
+
+    if(p.position.x > 2.7 || p.position.x < -2.7) p.velocity.x *= -1;
+    if(p.position.y > 6.8 || p.position.y < -0.5) p.velocity.y *= -1;
+    if(p.position.z > 2.7 || p.position.z < -2.7) p.velocity.z *= -1;
   });
+
+  renderer.render(scene, camera);
+}
+
+animate();
+
+// RESPONSIVE
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
 </script>
 
 </body>
