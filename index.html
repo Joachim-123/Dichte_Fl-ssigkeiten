@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>3D Dichte Simulation</title>
 
   <style>
@@ -40,13 +40,6 @@
       font-weight: bold;
     }
 
-    .formula span {
-      font-size: 18px;
-      display: block;
-      margin-top: 8px;
-      color: #cbd5e1;
-    }
-
     input[type=range] {
       width: 100%;
     }
@@ -58,9 +51,11 @@
     }
   </style>
 </head>
+
 <body>
 
 <div id="panel">
+
   <h1>Dichteberechnung</h1>
 
   <div class="formula">
@@ -81,11 +76,16 @@
     <div>Volumen: <span id="volume">100 ml</span></div>
     <div>Dichte: <span id="density">0.50 g/ml</span></div>
   </div>
+
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
 <script>
+
+//
+// SZENE
+//
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0f172a);
@@ -105,6 +105,7 @@ const renderer = new THREE.WebGLRenderer({
 });
 
 renderer.setSize(window.innerWidth, window.innerHeight);
+
 document.body.appendChild(renderer.domElement);
 
 //
@@ -156,7 +157,7 @@ const glassMaterial = new THREE.MeshPhysicalMaterial({
 });
 
 //
-// Behälterkanten
+// KANTEN
 //
 
 const edges = new THREE.LineSegments(
@@ -173,7 +174,7 @@ edges.position.y = 3;
 containerGroup.add(edges);
 
 //
-// Transparente Wände
+// GLAS
 //
 
 const container = new THREE.Mesh(
@@ -186,7 +187,7 @@ container.position.y = 3;
 containerGroup.add(container);
 
 //
-// Flüssigkeit
+// FLÜSSIGKEIT
 //
 
 const liquidGeometry = new THREE.BoxGeometry(
@@ -224,9 +225,11 @@ const particleGeo = new THREE.SphereGeometry(
   12
 );
 
+let currentLiquidHeight = 1;
+
 function createParticles(count) {
 
-  particles.forEach(p => scene.remove(p));
+  particles.forEach(p => containerGroup.remove(p));
 
   particles.length = 0;
 
@@ -243,25 +246,31 @@ function createParticles(count) {
       mat
     );
 
+    //
+    // NUR IM BLAUEN KÖRPER
+    //
+
     particle.position.set(
       (Math.random() - 0.5) * 5,
-      Math.random() * 7,
+      Math.random() * (currentLiquidHeight * 4),
       (Math.random() - 0.5) * 5
     );
 
     particle.velocity = {
-      x: (Math.random() - 0.5) * 0.03,
-      y: (Math.random() - 0.5) * 0.03,
-      z: (Math.random() - 0.5) * 0.03
+      x: (Math.random() - 0.5) * 0.02,
+      y: (Math.random() - 0.5) * 0.02,
+      z: (Math.random() - 0.5) * 0.02
     };
 
     particles.push(particle);
 
-    scene.add(particle);
+    //
+    // IN DIE FLÜSSIGKEITSGRUPPE
+    //
+
+    containerGroup.add(particle);
   }
 }
-
-createParticles(50);
 
 //
 // UI
@@ -278,7 +287,6 @@ const densityText = document.getElementById('density');
 const volumeText = document.getElementById('volume');
 
 let currentMass = 50;
-
 let currentVolume = 100;
 
 //
@@ -289,7 +297,6 @@ function updateSimulation() {
 
   const density = currentMass / currentVolume;
 
-  // EINHEITEN BLEIBEN JETZT ERHALTEN
   massText.textContent = currentMass + " g";
 
   volumeText.textContent = currentVolume + " ml";
@@ -298,11 +305,13 @@ function updateSimulation() {
     density.toFixed(2) + " g/ml";
 
   //
-  // Flüssigkeitshöhe
+  // FLÜSSIGKEITSHÖHE
   //
 
   const liquidHeight =
     Math.min(currentVolume / 100, 1.95);
+
+  currentLiquidHeight = liquidHeight;
 
   liquid.scale.y = liquidHeight;
 
@@ -310,14 +319,14 @@ function updateSimulation() {
     liquidHeight * 2 - 1;
 
   //
-  // Teilchenanzahl
+  // NEUE PARTIKEL
   //
 
   createParticles(currentMass);
 }
 
 //
-// SLIDER EVENTS
+// SLIDER
 //
 
 slider.addEventListener('input', () => {
@@ -341,17 +350,14 @@ updateSimulation();
 //
 
 let targetRotationY = 0;
-
 let targetRotationX = 0;
 
 let currentRotationY = 0;
-
 let currentRotationX = 0;
 
 let isMouseDown = false;
 
 let previousMouseX = 0;
-
 let previousMouseY = 0;
 
 renderer.domElement.addEventListener(
@@ -361,7 +367,6 @@ renderer.domElement.addEventListener(
     isMouseDown = true;
 
     previousMouseX = event.clientX;
-
     previousMouseY = event.clientY;
   }
 );
@@ -399,7 +404,6 @@ renderer.domElement.addEventListener(
     targetRotationX += deltaY * 0.005;
 
     previousMouseX = event.clientX;
-
     previousMouseY = event.clientY;
   }
 );
@@ -415,7 +419,7 @@ function animate() {
   camera.lookAt(container.position);
 
   //
-  // Sanfte Rotation
+  // ROTATION
   //
 
   currentRotationY +=
@@ -431,7 +435,7 @@ function animate() {
     currentRotationX;
 
   //
-  // Flüssigkeitsbewegung
+  // FLÜSSIGKEITSBEWEGUNG
   //
 
   liquid.rotation.z =
@@ -441,24 +445,28 @@ function animate() {
     Math.cos(Date.now() * 0.0012) * 0.01;
 
   //
-  // Teilchen bewegen
+  // PARTIKELBEWEGUNG
   //
+
+  const maxY = currentLiquidHeight * 4;
 
   particles.forEach(p => {
 
     p.position.x += p.velocity.x;
-
     p.position.y += p.velocity.y;
-
     p.position.z += p.velocity.z;
 
-    if(p.position.x > 2.7 || p.position.x < -2.7)
+    //
+    // GRENZEN INNERHALB DER FLÜSSIGKEIT
+    //
+
+    if(p.position.x > 2.6 || p.position.x < -2.6)
       p.velocity.x *= -1;
 
-    if(p.position.y > 6.8 || p.position.y < -0.5)
+    if(p.position.y > maxY || p.position.y < 0)
       p.velocity.y *= -1;
 
-    if(p.position.z > 2.7 || p.position.z < -2.7)
+    if(p.position.z > 2.6 || p.position.z < -2.6)
       p.velocity.z *= -1;
   });
 
