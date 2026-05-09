@@ -81,10 +81,10 @@
   </div>
 </div>
 
-<script type="module">
-  import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
-  import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
 
+<script>
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x0f172a);
 
@@ -100,7 +100,7 @@
   renderer.shadowMap.enabled = true;
   document.body.appendChild(renderer.domElement);
 
-  const controls = new OrbitControls(camera, renderer.domElement);
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
 
   camera.position.set(0, 8, 15);
@@ -111,55 +111,49 @@
 
   const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
   directionalLight.position.set(10, 20, 10);
-  directionalLight.castShadow = true;
   scene.add(directionalLight);
 
   // Boden
   const floorGeometry = new THREE.PlaneGeometry(50, 50);
   const floorMaterial = new THREE.MeshStandardMaterial({
-    color: 0x1e293b,
-    metalness: 0.2,
-    roughness: 0.8
+    color: 0x1e293b
   });
 
   const floor = new THREE.Mesh(floorGeometry, floorMaterial);
   floor.rotation.x = -Math.PI / 2;
-  floor.receiveShadow = true;
+  floor.position.y = -0.5;
   scene.add(floor);
 
-  // Transparenter Behälter
+  // Behälter
   const containerGeometry = new THREE.BoxGeometry(6, 8, 6);
   const containerMaterial = new THREE.MeshPhysicalMaterial({
     color: 0x38bdf8,
     transparent: true,
-    opacity: 0.2,
-    transmission: 1,
+    opacity: 0.25,
     roughness: 0,
-    thickness: 0.5
+    transmission: 1
   });
 
   const container = new THREE.Mesh(containerGeometry, containerMaterial);
   container.position.y = 4;
   scene.add(container);
 
-  // Schwebeteilchen
+  // Teilchen
   const particles = [];
   const particleGeometry = new THREE.SphereGeometry(0.15, 16, 16);
-
-  let particleCount = 50;
 
   function createParticles(count) {
     particles.forEach(p => scene.remove(p));
     particles.length = 0;
 
     for (let i = 0; i < count; i++) {
-      const material = new THREE.MeshStandardMaterial({
+      const particleMaterial = new THREE.MeshStandardMaterial({
         color: 0xffffff,
         emissive: 0x38bdf8,
-        emissiveIntensity: 0.5
+        emissiveIntensity: 1
       });
 
-      const particle = new THREE.Mesh(particleGeometry, material);
+      const particle = new THREE.Mesh(particleGeometry, particleMaterial);
 
       particle.position.set(
         (Math.random() - 0.5) * 5,
@@ -168,9 +162,9 @@
       );
 
       particle.userData.velocity = {
-        x: (Math.random() - 0.5) * 0.02,
-        y: (Math.random() - 0.5) * 0.02,
-        z: (Math.random() - 0.5) * 0.02
+        x: (Math.random() - 0.5) * 0.03,
+        y: (Math.random() - 0.5) * 0.03,
+        z: (Math.random() - 0.5) * 0.03
       };
 
       particles.push(particle);
@@ -178,9 +172,9 @@
     }
   }
 
-  createParticles(particleCount);
+  createParticles(50);
 
-  // UI Elemente
+  // Slider
   const massSlider = document.getElementById('massSlider');
   const massValue = document.getElementById('massValue');
   const densityValue = document.getElementById('densityValue');
@@ -194,9 +188,7 @@
     massValue.textContent = mass;
     densityValue.textContent = density.toFixed(2);
 
-    // Mehr Masse = mehr Teilchen
-    particleCount = mass;
-    createParticles(particleCount);
+    createParticles(mass);
   });
 
   // Animation
@@ -208,7 +200,6 @@
       particle.position.y += particle.userData.velocity.y;
       particle.position.z += particle.userData.velocity.z;
 
-      // Begrenzung im Behälter
       if (particle.position.x > 2.7 || particle.position.x < -2.7) {
         particle.userData.velocity.x *= -1;
       }
