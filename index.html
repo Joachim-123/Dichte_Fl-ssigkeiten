@@ -3,162 +3,175 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dichte-Würfel</title>
+<title>Dichteberechnung Widget</title>
+
 <style>
-  body {
-    font-family: system-ui, sans-serif;
-    text-align: center;
-    margin: 20px;
-  }
+    body {
+        font-family: Arial, sans-serif;
+        background: #f4f7fb;
+        margin: 0;
+        padding: 20px;
+        display: flex;
+        justify-content: center;
+    }
 
-  h3 {
-    margin-bottom: 20px;
-  }
+    .widget {
+        width: 100%;
+        max-width: 500px;
+        background: #ffffff;
+        border-radius: 16px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        padding: 30px;
+    }
 
-  .control {
-    margin: 15px 0;
-  }
+    h1 {
+        margin-top: 0;
+        text-align: center;
+        color: #1f3b5b;
+    }
 
-  input[type="range"] {
-    width: 300px;
-    max-width: 90%;
-  }
+    .formula {
+        background: #eef5ff;
+        border-left: 4px solid #3b82f6;
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+        font-size: 1.3rem;
+        font-weight: bold;
+        color: #1e3a8a;
+        margin-bottom: 25px;
+    }
 
-  #cube {
-    margin: 30px auto;
-    border: 2px solid black;
-    position: relative;
-    background: white;
-  }
+    .input-group {
+        margin-bottom: 20px;
+    }
 
-  .particle {
-    position: absolute;
-    width: 4px;
-    height: 4px;
-    background: black;
-    border-radius: 50%;
-  }
+    label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: bold;
+        color: #334155;
+    }
 
-  #formula {
-    margin-top: 20px;
-    font-size: 1.8em;
-    line-height: 1.4;
-  }
+    input {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        font-size: 1rem;
+        box-sizing: border-box;
+    }
 
-  /* Darstellung eines Bruchs */
-  .fraction {
-    display: inline-block;
-    vertical-align: middle;
-    text-align: center;
-    margin: 0 4px;
-  }
+    button {
+        width: 100%;
+        padding: 14px;
+        border: none;
+        border-radius: 10px;
+        background: #2563eb;
+        color: white;
+        font-size: 1rem;
+        font-weight: bold;
+        cursor: pointer;
+    }
 
-  .fraction .top {
-    display: block;
-    border-bottom: 2px solid #000;
-    padding: 0 8px;
-  }
+    button:hover {
+        background: #1d4ed8;
+    }
 
-  .fraction .bottom {
-    display: block;
-  }
+    .result {
+        margin-top: 25px;
+        padding: 20px;
+        background: #f8fafc;
+        border: 1px solid #dbeafe;
+        border-radius: 10px;
+        display: none;
+        text-align: center;
+    }
+
+    .value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #059669;
+        margin-top: 10px;
+    }
+
+    .error {
+        margin-top: 15px;
+        padding: 12px;
+        background: #fee2e2;
+        color: #b91c1c;
+        border-radius: 8px;
+        display: none;
+    }
+
+    .info {
+        margin-top: 20px;
+        font-size: 0.9rem;
+        color: #64748b;
+        line-height: 1.6;
+    }
 </style>
 </head>
 <body>
 
-<h3>Dichte</h3>
+<div class="widget">
+    <h1>Dichteberechnung</h1>
 
-<div class="control">
-  <label>
-    Masse (m): <span id="mVal">50</span>
-  </label><br>
-  <input type="range" id="mass" min="1" max="200" value="50">
+    <div class="formula">
+        ρ = m / V
+    </div>
+
+    <div class="input-group">
+        <label for="mass">Masse (g)</label>
+        <input type="number" id="mass" placeholder="z. B. 1000" step="any">
+    </div>
+
+    <div class="input-group">
+        <label for="volume">Volumen (cm³ oder mL)</label>
+        <input type="number" id="volume" placeholder="z. B. 1000" step="any">
+    </div>
+
+    <button onclick="calculateDensity()">Dichte berechnen</button>
+
+    <div class="error" id="error"></div>
+
+    <div class="result" id="result">
+        <h2>Ergebnis</h2>
+        <div class="value" id="densityValue"></div>
+    </div>
+
+    <div class="info">
+        <strong>Formel:</strong> Dichte = Masse ÷ Volumen<br>
+        <strong>Einheit:</strong> g/cm³<br><br>
+        <strong>Beispiel:</strong><br>
+        1000 g ÷ 1000 cm³ = 1,00 g/cm³ (Wasser)
+    </div>
 </div>
-
-<div class="control">
-  <label>
-    Volumen (V): <span id="vVal">100</span>
-  </label><br>
-  <input type="range" id="volume" min="20" max="200" value="100">
-</div>
-
-<div id="cube"></div>
-
-<p id="formula">
-  ρ =
-  <span class="fraction">
-    <span class="top">m</span>
-    <span class="bottom">V</span>
-  </span>
-  =
-  <span class="fraction">
-    <span class="top" id="mNum">50</span>
-    <span class="bottom" id="vNum">100</span>
-  </span>
-  =
-  <span id="rhoValue">0.50</span>
-</p>
 
 <script>
-const mass = document.getElementById("mass");
-const volume = document.getElementById("volume");
-const cube = document.getElementById("cube");
+function calculateDensity() {
+    const mass = parseFloat(document.getElementById("mass").value);
+    const volume = parseFloat(document.getElementById("volume").value);
 
-const mVal = document.getElementById("mVal");
-const vVal = document.getElementById("vVal");
+    const error = document.getElementById("error");
+    const result = document.getElementById("result");
+    const densityValue = document.getElementById("densityValue");
 
-const mNum = document.getElementById("mNum");
-const vNum = document.getElementById("vNum");
-const rhoValue = document.getElementById("rhoValue");
+    error.style.display = "none";
+    result.style.display = "none";
 
-function update() {
-  const m = Number(mass.value);
-  const V = Number(volume.value);
-  const rho = m / V;
-
-  // Werte neben den Reglern aktualisieren
-  mVal.textContent = m;
-  vVal.textContent = V;
-
-  // Formel aktualisieren
-  mNum.textContent = m;
-  vNum.textContent = V;
-  rhoValue.textContent = rho.toFixed(2);
-
-  // Würfelgröße proportional zur dritten Wurzel des Volumens
-  const size = Math.cbrt(V) * 40;
-  cube.style.width = size + "px";
-  cube.style.height = size + "px";
-
-  // Teilchen neu zeichnen
-  cube.innerHTML = "";
-
-  // Teilchen in gleichmäßigem Raster anordnen
-  const n = Math.ceil(Math.sqrt(m));
-  const spacing = size / n;
-
-  let count = 0;
-
-  for (let y = 0; y < n; y++) {
-    for (let x = 0; x < n; x++) {
-      if (count >= m) return;
-
-      const p = document.createElement("div");
-      p.className = "particle";
-
-      // Zentriert im Raster positionieren
-      p.style.left = (x * spacing + spacing / 2 - 2) + "px";
-      p.style.top = (y * spacing + spacing / 2 - 2) + "px";
-
-      cube.appendChild(p);
-      count++;
+    if (isNaN(mass) || isNaN(volume) || mass <= 0 || volume <= 0) {
+        error.textContent = "Bitte gültige Werte größer als 0 eingeben.";
+        error.style.display = "block";
+        return;
     }
-  }
+
+    const density = mass / volume;
+
+    densityValue.textContent = density.toFixed(4) + " g/cm³";
+    result.style.display = "block";
 }
+</script>
 
-// Regler reagieren auf Änderungen
-mass.addEventListener("input", update);
-volume.addEventListener("input", update);
-
-// Initiale Darstellung
-update();
+</body>
+</html>
