@@ -26,7 +26,7 @@
       backdrop-filter: blur(10px);
     }
 
-    h1 { color:#38bdf8; margin-top:0; }
+    h1 { margin-top:0; color:#38bdf8; }
 
     .formula {
       font-size: 26px;
@@ -73,20 +73,17 @@ const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(innerWidth,innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// LIGHT
 scene.add(new THREE.AmbientLight(0xffffff,0.7));
 const light = new THREE.DirectionalLight(0xffffff,1);
 light.position.set(10,15,10);
 scene.add(light);
 
-// GROUP
 const containerGroup = new THREE.Group();
 scene.add(containerGroup);
 
-// GLASS CONTAINER (VISIBLE FIX)
 const boxSize = {x:6,y:8,z:6};
 
-const glassMat = new THREE.MeshPhysicalMaterial({
+const glass = new THREE.MeshPhysicalMaterial({
   color:0xffffff,
   transparent:true,
   opacity:0.25,
@@ -96,24 +93,22 @@ const glassMat = new THREE.MeshPhysicalMaterial({
 
 const container = new THREE.Mesh(
   new THREE.BoxGeometry(boxSize.x,boxSize.y,boxSize.z),
-  glassMat
+  glass
 );
 container.position.y = 3;
 containerGroup.add(container);
 
-// FLUID
-const liquidMat = new THREE.MeshPhysicalMaterial({
-  color:0x2563eb,
-  transparent:true,
-  opacity:0.6,
-  roughness:0.2
-});
-
-const liquid = new THREE.Mesh(new THREE.BoxGeometry(5.6,4,5.6), liquidMat);
+const liquid = new THREE.Mesh(
+  new THREE.BoxGeometry(5.6,4,5.6),
+  new THREE.MeshPhysicalMaterial({
+    color:0x2563eb,
+    transparent:true,
+    opacity:0.6
+  })
+);
 liquid.position.y = 1;
 containerGroup.add(liquid);
 
-// PARTICLES
 const particles=[];
 const geo=new THREE.SphereGeometry(0.12,10,10);
 
@@ -135,10 +130,8 @@ function createParticles(n){
 
 createParticles(50);
 
-// UI
 const massS=document.getElementById("massSlider");
 const volS=document.getElementById("volumeSlider");
-
 const massT=document.getElementById("mass");
 const volT=document.getElementById("volume");
 const densT=document.getElementById("density");
@@ -155,23 +148,22 @@ function update(){
 
   createParticles(mass);
 
-  const h=Math.min(volume/100,2);
+  const h=Math.min(volume/100,1);
   liquid.scale.y=h;
-  liquid.position.y=h*2-1;
+  liquid.position.y=(h*boxSize.y)/2-boxSize.y/2;
 }
 
 massS.oninput=()=>{mass=+massS.value;update();};
 volS.oninput=()=>{volume=+volS.value;update();};
 update();
 
-// ROTATION (MOUSE DRAG)
-let isDown=false,ox=0,oy=0,tx=0,ty=0,rx=0,ry=0;
+let down=false,ox=0,oy=0,tx=0,ty=0,rx=0,ry=0;
 
-renderer.domElement.onmousedown=e=>{isDown=true;ox=e.clientX;oy=e.clientY;};
-renderer.domElement.onmouseup=()=>isDown=false;
-renderer.domElement.onmouseleave=()=>isDown=false;
+renderer.domElement.onmousedown=e=>{down=true;ox=e.clientX;oy=e.clientY;};
+renderer.domElement.onmouseup=()=>down=false;
+renderer.domElement.onmouseleave=()=>down=false;
 renderer.domElement.onmousemove=e=>{
-  if(!isDown)return;
+  if(!down)return;
   tx+=(e.clientX-ox)*0.01;
   ty+=(e.clientY-oy)*0.005;
   ox=e.clientX;oy=e.clientY;
@@ -186,13 +178,15 @@ function animate(){
   containerGroup.rotation.y=rx;
   containerGroup.rotation.x=ry;
 
+  containerGroup.updateMatrixWorld(true);
+
+  const inv=new THREE.Matrix4().copy(containerGroup.matrixWorld).invert();
   const half={x:boxSize.x/2,y:boxSize.y/2,z:boxSize.z/2};
 
   particles.forEach(p=>{
-    p.position.add(new THREE.Vector3(p.velocity.x,p.velocity.y,p.velocity.z));
+    p.position.add(p.velocity);
 
-    const local=p.position.clone();
-    containerGroup.worldToLocal(local);
+    const local=p.position.clone().applyMatrix4(inv);
 
     if(local.x>half.x||local.x<-half.x)p.velocity.x*=-1;
     if(local.y>half.y||local.y<-half.y)p.velocity.y*=-1;
