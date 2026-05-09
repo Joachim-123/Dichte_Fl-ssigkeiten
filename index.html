@@ -67,7 +67,10 @@
   <input type="range" id="volumeSlider" min="50" max="200" value="100">
 
   <div class="values">
-    <div>Masse: <span id="mass">50</span></div>
+    <div>Masse: <span id="mass">50</span> g</div>
+    <div>Volumen: <span id="volume">100</span> ml</div>
+    <div>Dichte: <span id="density">0.50</span> g/ml</div>
+  </div>
     <div>Volumen: <span id="volume">100</span></div>
     <div>Dichte: <span id="density">0.50</span></div>
   </div>
@@ -281,18 +284,19 @@ function animate() {
 
   requestAnimationFrame(animate);
 
+  // Rotation nur durch Maussteuerung (containerGroup)
+
   camera.lookAt(container.position);
 
-  // Sanfte Mausrotation
+  // sanfte Rotation
   currentRotationY += (targetRotationY - currentRotationY) * 0.08;
   currentRotationX += (targetRotationX - currentRotationX) * 0.08;
 
   containerGroup.rotation.y = currentRotationY;
   containerGroup.rotation.x = currentRotationX;
 
-  // Flüssigkeitsbewegung
-  liquid.rotation.z = Math.sin(Date.now() * 0.001) * 0.01;
-  liquid.rotation.x = Math.cos(Date.now() * 0.0012) * 0.01;
+  // PARTIKEL PHYSIK (in Container-Lokalraum)
+  const invMatrix = new THREE.Matrix4().copy(containerGroup.matrixWorld).invert();
 
   particles.forEach(p => {
 
@@ -300,9 +304,14 @@ function animate() {
     p.position.y += p.velocity.y;
     p.position.z += p.velocity.z;
 
-    if(p.position.x > 2.7 || p.position.x < -2.7) p.velocity.x *= -1;
-    if(p.position.y > 6.8 || p.position.y < -0.5) p.velocity.y *= -1;
-    if(p.position.z > 2.7 || p.position.z < -2.7) p.velocity.z *= -1;
+    // in lokalen Raum umrechnen
+    const localPos = p.position.clone().applyMatrix4(invMatrix);
+
+    const limit = 2.7;
+
+    if (localPos.x > limit || localPos.x < -limit) p.velocity.x *= -1;
+    if (localPos.y > limit || localPos.y < -limit) p.velocity.y *= -1;
+    if (localPos.z > limit || localPos.z < -limit) p.velocity.z *= -1;
   });
 
   renderer.render(scene, camera);
@@ -321,3 +330,5 @@ window.addEventListener('resize', () => {
 
 </body>
 </html>
+
+
