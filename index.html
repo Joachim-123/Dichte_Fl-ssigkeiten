@@ -1,83 +1,242 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dichteberechnung</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D Dichteberechnung</title>
+
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: linear-gradient(to right, #e3f2fd, #ffffff);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
       margin: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to bottom, #0f172a, #1e293b);
+      color: white;
     }
 
-    .container {
-      background: white;
-      padding: 40px;
+    #ui {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 10;
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      padding: 20px;
       border-radius: 20px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-      text-align: center;
-      max-width: 500px;
-      width: 90%;
+      width: 300px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
     }
 
     h1 {
-      color: #1565c0;
-      margin-bottom: 20px;
+      margin-top: 0;
+      font-size: 28px;
+      color: #7dd3fc;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      margin-bottom: 5px;
+    }
+
+    input[type="range"] {
+      width: 100%;
     }
 
     .formula {
-      font-size: 42px;
+      margin-top: 20px;
+      font-size: 24px;
       font-weight: bold;
-      color: #0d47a1;
-      background: #e3f2fd;
-      padding: 20px;
-      border-radius: 15px;
-      margin-bottom: 25px;
+      text-align: center;
+      color: #38bdf8;
     }
 
-    .explanation {
-      text-align: left;
-      font-size: 18px;
+    .values {
+      margin-top: 15px;
       line-height: 1.8;
-      color: #333;
+      font-size: 18px;
     }
 
-    .symbol {
-      font-weight: bold;
-      color: #1565c0;
-    }
-
-    .footer {
-      margin-top: 25px;
-      font-size: 14px;
-      color: gray;
+    canvas {
+      display: block;
     }
   </style>
 </head>
 <body>
 
-  <div class="container">
-    <h1>Dichteberechnung</h1>
+<div id="ui">
+  <h1>Dichte 3D Simulation</h1>
 
-    <div class="formula">
-      ρ = m / V
-    </div>
+  <label for="massSlider">Masse ändern</label>
+  <input type="range" id="massSlider" min="1" max="100" value="50" />
 
-    <div class="explanation">
-      <p><span class="symbol">ρ</span> = Dichte</p>
-      <p><span class="symbol">m</span> = Masse</p>
-      <p><span class="symbol">V</span> = Volumen</p>
-    </div>
-
-    <div class="footer">
-      Erstellt für GitHub Pages 🚀
-    </div>
+  <div class="formula">
+    ρ = m / V
   </div>
+
+  <div class="values">
+    <div>Masse: <span id="massValue">50</span></div>
+    <div>Volumen: <span id="volumeValue">100</span></div>
+    <div>Dichte: <span id="densityValue">0.50</span></div>
+  </div>
+</div>
+
+<script type="module">
+  import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+  import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0f172a);
+
+  const camera = new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+  );
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.shadowMap.enabled = true;
+  document.body.appendChild(renderer.domElement);
+
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+
+  camera.position.set(0, 8, 15);
+
+  // Licht
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+  scene.add(ambientLight);
+
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+  directionalLight.position.set(10, 20, 10);
+  directionalLight.castShadow = true;
+  scene.add(directionalLight);
+
+  // Boden
+  const floorGeometry = new THREE.PlaneGeometry(50, 50);
+  const floorMaterial = new THREE.MeshStandardMaterial({
+    color: 0x1e293b,
+    metalness: 0.2,
+    roughness: 0.8
+  });
+
+  const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+  floor.rotation.x = -Math.PI / 2;
+  floor.receiveShadow = true;
+  scene.add(floor);
+
+  // Transparenter Behälter
+  const containerGeometry = new THREE.BoxGeometry(6, 8, 6);
+  const containerMaterial = new THREE.MeshPhysicalMaterial({
+    color: 0x38bdf8,
+    transparent: true,
+    opacity: 0.2,
+    transmission: 1,
+    roughness: 0,
+    thickness: 0.5
+  });
+
+  const container = new THREE.Mesh(containerGeometry, containerMaterial);
+  container.position.y = 4;
+  scene.add(container);
+
+  // Schwebeteilchen
+  const particles = [];
+  const particleGeometry = new THREE.SphereGeometry(0.15, 16, 16);
+
+  let particleCount = 50;
+
+  function createParticles(count) {
+    particles.forEach(p => scene.remove(p));
+    particles.length = 0;
+
+    for (let i = 0; i < count; i++) {
+      const material = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        emissive: 0x38bdf8,
+        emissiveIntensity: 0.5
+      });
+
+      const particle = new THREE.Mesh(particleGeometry, material);
+
+      particle.position.set(
+        (Math.random() - 0.5) * 5,
+        Math.random() * 7 + 0.5,
+        (Math.random() - 0.5) * 5
+      );
+
+      particle.userData.velocity = {
+        x: (Math.random() - 0.5) * 0.02,
+        y: (Math.random() - 0.5) * 0.02,
+        z: (Math.random() - 0.5) * 0.02
+      };
+
+      particles.push(particle);
+      scene.add(particle);
+    }
+  }
+
+  createParticles(particleCount);
+
+  // UI Elemente
+  const massSlider = document.getElementById('massSlider');
+  const massValue = document.getElementById('massValue');
+  const densityValue = document.getElementById('densityValue');
+
+  const volume = 100;
+
+  massSlider.addEventListener('input', () => {
+    const mass = Number(massSlider.value);
+    const density = mass / volume;
+
+    massValue.textContent = mass;
+    densityValue.textContent = density.toFixed(2);
+
+    // Mehr Masse = mehr Teilchen
+    particleCount = mass;
+    createParticles(particleCount);
+  });
+
+  // Animation
+  function animate() {
+    requestAnimationFrame(animate);
+
+    particles.forEach(particle => {
+      particle.position.x += particle.userData.velocity.x;
+      particle.position.y += particle.userData.velocity.y;
+      particle.position.z += particle.userData.velocity.z;
+
+      // Begrenzung im Behälter
+      if (particle.position.x > 2.7 || particle.position.x < -2.7) {
+        particle.userData.velocity.x *= -1;
+      }
+
+      if (particle.position.y > 7.5 || particle.position.y < 0.5) {
+        particle.userData.velocity.y *= -1;
+      }
+
+      if (particle.position.z > 2.7 || particle.position.z < -2.7) {
+        particle.userData.velocity.z *= -1;
+      }
+    });
+
+    container.rotation.y += 0.002;
+
+    controls.update();
+    renderer.render(scene, camera);
+  }
+
+  animate();
+
+  // Responsive
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+</script>
 
 </body>
 </html>
