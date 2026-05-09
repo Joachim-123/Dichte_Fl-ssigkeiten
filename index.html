@@ -225,8 +225,6 @@ const particleGeo = new THREE.SphereGeometry(
   12
 );
 
-let currentLiquidHeight = 1;
-
 function createParticles(count) {
 
   particles.forEach(p => containerGroup.remove(p));
@@ -247,12 +245,12 @@ function createParticles(count) {
     );
 
     //
-    // NUR IM BLAUEN KÖRPER
+    // POSITION NUR INNERHALB DER FLÜSSIGKEIT
     //
 
     particle.position.set(
       (Math.random() - 0.5) * 5,
-      Math.random() * (currentLiquidHeight * 4),
+      Math.random() * (liquid.scale.y * 2),
       (Math.random() - 0.5) * 5
     );
 
@@ -263,10 +261,6 @@ function createParticles(count) {
     };
 
     particles.push(particle);
-
-    //
-    // IN DIE FLÜSSIGKEITSGRUPPE
-    //
 
     containerGroup.add(particle);
   }
@@ -311,15 +305,13 @@ function updateSimulation() {
   const liquidHeight =
     Math.min(currentVolume / 100, 1.95);
 
-  currentLiquidHeight = liquidHeight;
-
   liquid.scale.y = liquidHeight;
 
   liquid.position.y =
     liquidHeight * 2 - 1;
 
   //
-  // NEUE PARTIKEL
+  // PARTIKEL NEU ERZEUGEN
   //
 
   createParticles(currentMass);
@@ -445,10 +437,14 @@ function animate() {
     Math.cos(Date.now() * 0.0012) * 0.01;
 
   //
-  // PARTIKELBEWEGUNG
+  // GRENZEN DER FLÜSSIGKEIT
   //
 
-  const maxY = currentLiquidHeight * 4;
+  const maxY = liquid.scale.y * 2;
+
+  //
+  // PARTIKELBEWEGUNG
+  //
 
   particles.forEach(p => {
 
@@ -457,7 +453,7 @@ function animate() {
     p.position.z += p.velocity.z;
 
     //
-    // GRENZEN INNERHALB DER FLÜSSIGKEIT
+    // INNERHALB DER FLÜSSIGKEIT BLEIBEN
     //
 
     if(p.position.x > 2.6 || p.position.x < -2.6)
