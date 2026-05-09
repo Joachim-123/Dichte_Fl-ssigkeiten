@@ -1,231 +1,83 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Dichteberechnung Widget</title>
-<style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dichteberechnung</title>
+  <style>
     body {
-        margin: 0;
-        padding: 20px;
-        font-family: Arial, sans-serif;
-        background: #f4f7fb;
-        display: flex;
-        justify-content: center;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to right, #e3f2fd, #ffffff);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
     }
 
-    .widget {
-        width: 100%;
-        max-width: 520px;
-        background: #ffffff;
-        border-radius: 16px;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-        padding: 30px;
+    .container {
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+      text-align: center;
+      max-width: 500px;
+      width: 90%;
     }
 
     h1 {
-        margin-top: 0;
-        text-align: center;
-        color: #1f3b5b;
+      color: #1565c0;
+      margin-bottom: 20px;
     }
 
     .formula {
-        background: #eef5ff;
-        border-left: 4px solid #3b82f6;
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 25px;
-        text-align: center;
-        font-size: 1.4rem;
-        font-weight: bold;
-        color: #1e3a8a;
+      font-size: 42px;
+      font-weight: bold;
+      color: #0d47a1;
+      background: #e3f2fd;
+      padding: 20px;
+      border-radius: 15px;
+      margin-bottom: 25px;
     }
 
-    .input-group {
-        margin-bottom: 20px;
+    .explanation {
+      text-align: left;
+      font-size: 18px;
+      line-height: 1.8;
+      color: #333;
     }
 
-    label {
-        display: block;
-        margin-bottom: 6px;
-        font-weight: bold;
-        color: #334155;
+    .symbol {
+      font-weight: bold;
+      color: #1565c0;
     }
 
-    input {
-        width: 100%;
-        padding: 12px;
-        border: 1px solid #cbd5e1;
-        border-radius: 8px;
-        font-size: 1rem;
-        box-sizing: border-box;
+    .footer {
+      margin-top: 25px;
+      font-size: 14px;
+      color: gray;
     }
-
-    button {
-        width: 100%;
-        padding: 14px;
-        border: none;
-        border-radius: 10px;
-        background: #2563eb;
-        color: white;
-        font-size: 1rem;
-        font-weight: bold;
-        cursor: pointer;
-    }
-
-    button:hover {
-        background: #1d4ed8;
-    }
-
-    .error {
-        margin-top: 15px;
-        padding: 12px;
-        border-radius: 8px;
-        background: #fee2e2;
-        color: #b91c1c;
-        display: none;
-    }
-
-    .result {
-        margin-top: 25px;
-        padding: 20px;
-        border-radius: 10px;
-        background: #f8fafc;
-        border: 1px solid #dbeafe;
-        display: none;
-        text-align: center;
-    }
-
-    .value {
-        font-size: 2rem;
-        font-weight: bold;
-        color: #059669;
-        margin-top: 10px;
-    }
-
-    /* Grafikbereich */
-    .graphic {
-        margin: 25px auto 0;
-        width: 120px;
-        height: 180px;
-        position: relative;
-        display: none;
-    }
-
-    /* Becherglas */
-    .beaker {
-        position: absolute;
-        inset: 0;
-        border: 4px solid #334155;
-        border-top: none;
-        border-radius: 0 0 20px 20px;
-        overflow: hidden;
-        background: #ffffff;
-    }
-
-    /* Flüssigkeit */
-    .liquid {
-        position: absolute;
-        left: 0;
-        bottom: 0;
-        width: 100%;
-        height: 0%;
-        background: linear-gradient(to top, #2563eb, #60a5fa);
-        transition: height 0.6s ease;
-    }
-
-    .info {
-        margin-top: 20px;
-        font-size: 0.9rem;
-        color: #64748b;
-        line-height: 1.6;
-    }
-</style>
+  </style>
 </head>
 <body>
 
-<div class="widget">
+  <div class="container">
     <h1>Dichteberechnung</h1>
 
     <div class="formula">
-        ρ = m / V
+      ρ = m / V
     </div>
 
-    <div class="input-group">
-        <label for="mass">Masse (g)</label>
-        <input type="number" id="mass" placeholder="z. B. 1000" step="any" />
+    <div class="explanation">
+      <p><span class="symbol">ρ</span> = Dichte</p>
+      <p><span class="symbol">m</span> = Masse</p>
+      <p><span class="symbol">V</span> = Volumen</p>
     </div>
 
-    <div class="input-group">
-        <label for="volume">Volumen (cm³ oder mL)</label>
-        <input type="number" id="volume" placeholder="z. B. 1000" step="any" />
+    <div class="footer">
+      Erstellt für GitHub Pages 🚀
     </div>
-
-    <button type="button" onclick="calculateDensity()">
-        Dichte berechnen
-    </button>
-
-    <div class="error" id="error"></div>
-
-    <div class="result" id="result">
-        <h2>Ergebnis</h2>
-        <div class="value" id="densityValue"></div>
-
-        <!-- Grafische Darstellung -->
-        <div class="graphic" id="graphic">
-            <div class="beaker">
-                <div class="liquid" id="liquid"></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="info">
-        <strong>Beispiel:</strong> 1000 g / 1000 mL = 1,0000 g/cm³ (Wasser)
-    </div>
-</div>
-
-<script>
-function calculateDensity() {
-    const mass = parseFloat(document.getElementById('mass').value);
-    const volume = parseFloat(document.getElementById('volume').value);
-
-    const error = document.getElementById('error');
-    const result = document.getElementById('result');
-    const densityValue = document.getElementById('densityValue');
-    const graphic = document.getElementById('graphic');
-    const liquid = document.getElementById('liquid');
-
-    // Reset
-    error.style.display = 'none';
-    result.style.display = 'none';
-    graphic.style.display = 'none';
-
-    // Validierung
-    if (isNaN(mass) || isNaN(volume) || mass <= 0 || volume <= 0) {
-        error.textContent = 'Bitte gültige Werte größer als 0 eingeben.';
-        error.style.display = 'block';
-        return;
-    }
-
-    // Dichte berechnen
-    const density = mass / volume;
-
-    // Ergebnis anzeigen
-    densityValue.textContent = density.toFixed(4) + ' g/cm³';
-
-    // Füllhöhe im Becherglas:
-    // 1,0 g/cm³ = 50 %, max. 100 %
-    let fillPercent = density * 50;
-    if (fillPercent > 100) fillPercent = 100;
-    if (fillPercent < 5) fillPercent = 5;
-
-    liquid.style.height = fillPercent + '%';
-
-    // Grafik sichtbar machen
-    graphic.style.display = 'block';
-    result.style.display = 'block';
-}
-</script>
+  </div>
 
 </body>
 </html>
